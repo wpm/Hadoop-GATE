@@ -1,5 +1,10 @@
 package wpmcn.hadoop;
 
+import gate.*;
+import gate.creole.ExecutionException;
+import gate.creole.ResourceInstantiationException;
+import gate.util.GateException;
+import gate.util.persistence.PersistenceManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.filecache.DistributedCache;
@@ -15,26 +20,65 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import java.io.File;
 import java.io.IOException;
 
 public class HadoopGATE extends Configured implements Tool {
    private static final String HDFS_GATE_APP = "/tmp/gate-app.zip";
 
    static public class HadoopGATEMapper extends Mapper<LongWritable, Text, LongWritable, Text> {
-      private Path gateAPP;
+      private final String APPLICATION_XGAPP = "application.xgapp";
+      private Path gateApp;
+      private Corpus corpus;
+      private CorpusController application;
+      private Text annotation = new Text();
 
       @Override
       protected void setup(Context context) throws IOException, InterruptedException {
          Configuration configuration = context.getConfiguration();
          Path[] localCache = DistributedCache.getLocalCacheArchives(configuration);
-         gateAPP = localCache[0];
+         gateApp = new Path(localCache[0], APPLICATION_XGAPP);
+         try {
+            Gate.init();
+            application = (CorpusController) PersistenceManager.loadObjectFromFile(new File(gateApp.toString()));
+            corpus = Factory.newCorpus("Hadoop Corpus");
+            application.setCorpus(corpus);
+         } catch (GateException e) {
+            throw new RuntimeException(e);
+         }
       }
 
       @Override
       protected void map(LongWritable offset, Text text, Context context) throws IOException, InterruptedException {
-         context.setStatus(gateAPP.toString());
-         System.out.println(gateAPP +  ": <" + offset + " " + text + ">");
-         context.write(offset, text);
+         context.setStatus(gateApp.toString());
+         System.out.println(gateApp + ": <" + offset + " " + text + ">");
+
+         Document document = annotateDocument(text.toString());
+         annotation.set(document.toXml());
+         context.write(offset, annotation);
+      }
+
+      @SuppressWarnings({"unchecked"}) // Needed for corpus.add(document)
+      private Document annotateDocument(String contents) {
+         Document document;
+         try {
+            document = Factory.newDocument(contents);
+            corpus.add(document);
+            application.execute();
+         } catch (ResourceInstantiationException e) {
+            throw new RuntimeException(e);
+         } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+         }
+         Factory.deleteResource(document);
+         corpus.clear();
+         return document;
+      }
+
+      @Override
+      protected void cleanup(Context context) throws IOException, InterruptedException {
+         Factory.deleteResource(corpus);
+         Factory.deleteResource(application);
       }
    }
 
