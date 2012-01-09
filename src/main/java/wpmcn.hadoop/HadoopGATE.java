@@ -95,6 +95,7 @@ public class HadoopGATE extends Configured implements Tool {
       fs.copyFromLocalFile(gateApp, hdfsGateApp);
       URI gateAppURI = hdfsGateApp.suffix("#" + GATE_APP).toUri();
       DistributedCache.addCacheArchive(gateAppURI, configuration);
+      DistributedCache.createSymlink(configuration);
       // Add a gate.home definition pointing to the soft link to the GATE application directory.
       StringBuilder javaOpts = new StringBuilder();
       String currentJavaOpts = configuration.get(JAVA_OPTS);
