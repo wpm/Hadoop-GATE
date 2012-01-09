@@ -22,9 +22,12 @@ import org.apache.hadoop.util.ToolRunner;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 
 public class HadoopGATE extends Configured implements Tool {
    private static final String HDFS_GATE_APP = "/tmp/gate-app.zip";
+   private static final String GATE_APP = "gate-app";
+   private static final String JAVA_OPTS = "mapred.map.child.java.opts";
 
    static public class HadoopGATEMapper extends Mapper<LongWritable, Text, LongWritable, Text> {
       private final String APPLICATION_XGAPP = "application.xgapp";
@@ -86,11 +89,19 @@ public class HadoopGATE extends Configured implements Tool {
       Path gateApp = new Path(args[0]);
       Path input = new Path(args[1]);
       Path output = new Path(args[2]);
-      // Put the GATE application into the distributed cache.
+      // Put the GATE application into the distributed cache with a soft link in the task's working directory.
       FileSystem fs = FileSystem.get(configuration);
       Path hdfsGateApp = new Path(HDFS_GATE_APP);
       fs.copyFromLocalFile(gateApp, hdfsGateApp);
-      DistributedCache.addCacheArchive(hdfsGateApp.toUri(), configuration);
+      URI gateAppURI = hdfsGateApp.suffix("#" + GATE_APP).toUri();
+      DistributedCache.addCacheArchive(gateAppURI, configuration);
+      // Add a gate.home definition pointing to the soft link to the GATE application directory.
+      StringBuilder javaOpts = new StringBuilder();
+      String currentJavaOpts = configuration.get(JAVA_OPTS);
+      if (null != currentJavaOpts)
+         javaOpts.append(currentJavaOpts).append(" ");
+      javaOpts.append("-Dgate.home=" + GATE_APP);
+      configuration.set(JAVA_OPTS, javaOpts.toString());
 
       Job job = new Job(configuration, "GATE " + output);
       FileInputFormat.addInputPath(job, input);
