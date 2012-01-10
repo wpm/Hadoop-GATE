@@ -22,12 +22,9 @@ import org.apache.hadoop.util.ToolRunner;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 
 public class HadoopGATE extends Configured implements Tool {
    private static final String HDFS_GATE_APP = "/tmp/gate-app.zip";
-   private static final String GATE_APP = "gate-app";
-   private static final String JAVA_OPTS = "mapred.map.child.java.opts";
 
    static public class HadoopGATEMapper extends Mapper<LongWritable, Text, LongWritable, Text> {
       private final String APPLICATION_XGAPP = "application.xgapp";
@@ -38,12 +35,17 @@ public class HadoopGATE extends Configured implements Tool {
 
       @Override
       protected void setup(Context context) throws IOException, InterruptedException {
+         // TODO Only initialize GATE once per JVM.
          Configuration configuration = context.getConfiguration();
          Path[] localCache = DistributedCache.getLocalCacheArchives(configuration);
+         File gateHome = new File(localCache[0].toString());
          gateApp = new Path(localCache[0], APPLICATION_XGAPP);
          try {
+            Gate.runInSandbox(true);
+            Gate.setGateHome(gateHome);
+            Gate.setPluginsHome(new File(gateHome, "plugins"));
             Gate.init();
-            application = (CorpusController) PersistenceManager.loadObjectFromFile(new File(gateApp.toString()));
+            application = (CorpusController) PersistenceManager.loadObjectFromFile(gateHome);
             corpus = Factory.newCorpus("Hadoop Corpus");
             application.setCorpus(corpus);
          } catch (GateException e) {
@@ -93,16 +95,7 @@ public class HadoopGATE extends Configured implements Tool {
       FileSystem fs = FileSystem.get(configuration);
       Path hdfsGateApp = new Path(HDFS_GATE_APP);
       fs.copyFromLocalFile(gateApp, hdfsGateApp);
-      URI gateAppURI = hdfsGateApp.suffix("#" + GATE_APP).toUri();
-      DistributedCache.addCacheArchive(gateAppURI, configuration);
-      DistributedCache.createSymlink(configuration);
-      // Add a gate.home definition pointing to the soft link to the GATE application directory.
-      StringBuilder javaOpts = new StringBuilder();
-      String currentJavaOpts = configuration.get(JAVA_OPTS);
-      if (null != currentJavaOpts)
-         javaOpts.append(currentJavaOpts).append(" ");
-      javaOpts.append("-Dgate.home=" + GATE_APP);
-      configuration.set(JAVA_OPTS, javaOpts.toString());
+      DistributedCache.addCacheArchive(hdfsGateApp.toUri(), configuration);
 
       Job job = new Job(configuration, "GATE " + output);
       FileInputFormat.addInputPath(job, input);
