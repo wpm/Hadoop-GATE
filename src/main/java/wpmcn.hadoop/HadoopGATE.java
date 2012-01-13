@@ -35,7 +35,7 @@ public class HadoopGATE extends Configured implements Tool {
 
       @Override
       protected void setup(Context context) throws IOException, InterruptedException {
-         if (null != gate) {
+         if (null == gate) {
             Configuration configuration = context.getConfiguration();
             Path[] localCache = DistributedCache.getLocalCacheArchives(configuration);
             try {
