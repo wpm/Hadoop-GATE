@@ -12,10 +12,22 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
+/**
+ * A wrapper for a GATE application
+ *
+ * This object parses arbitrary text using a GATE application supplied to the constructor.
+ */
 public class GATEApplication {
    private CorpusController application;
    private Corpus corpus;
 
+   /**
+    * Initialize the GATE application
+    *
+    * @param gateHome path to an GATE application directory containing an application.xgapp in its root
+    * @throws GateException
+    * @throws IOException
+    */
    public GATEApplication(String gateHome) throws GateException, IOException {
       Gate.runInSandbox(true);
       Gate.setGateHome(new File(gateHome));
@@ -27,8 +39,15 @@ public class GATEApplication {
       application.setCorpus(corpus);
    }
 
-   public String xmlAnnotation(String content) throws ResourceInstantiationException, ExecutionException {
-      Document document = Factory.newDocument(content);
+   /**
+    * Analyze text, returning annotations in XML
+    * @param text the text to analyze
+    * @return GATE XML annotation document
+    * @throws ResourceInstantiationException
+    * @throws ExecutionException
+    */
+   public String xmlAnnotation(String text) throws ResourceInstantiationException, ExecutionException {
+      Document document = Factory.newDocument(text);
       annotateDocument(document);
       String xml = document.toXml();
       Factory.deleteResource(document);
@@ -43,6 +62,9 @@ public class GATEApplication {
       return document;
    }
 
+   /**
+    * Free resources associated with this object. This should be called before the object is deleted.
+    */
    public void close() {
       Factory.deleteResource(corpus);
       Factory.deleteResource(application);

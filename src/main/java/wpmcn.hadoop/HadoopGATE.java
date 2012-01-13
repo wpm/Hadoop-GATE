@@ -20,6 +20,12 @@ import org.apache.hadoop.util.ToolRunner;
 
 import java.io.IOException;
 
+/**
+ * A Hadoop job that runs GATE applications
+ *
+ * This job runs a GATE application on text. The GATE application is a archive file with an application.xgapp file in
+ * its root. This application is copied to HDFS and placed into the distributed cache.
+ */
 public class HadoopGATE extends Configured implements Tool {
    private static final String HDFS_GATE_APP = "/tmp/gate-app.zip";
 
