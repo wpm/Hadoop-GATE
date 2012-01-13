@@ -27,12 +27,18 @@ public class GATEApplication {
       application.setCorpus(corpus);
    }
 
-   @SuppressWarnings({"unchecked"}) // Needed for corpus.add(document)
-   public Document annotateDocument(String content) throws ResourceInstantiationException, ExecutionException {
+   public String xmlAnnotation(String content) throws ResourceInstantiationException, ExecutionException {
       Document document = Factory.newDocument(content);
+      annotateDocument(document);
+      String xml = document.toXml();
+      Factory.deleteResource(document);
+      return xml;
+   }
+
+   @SuppressWarnings({"unchecked"}) // Needed for corpus.add(document)
+   private Document annotateDocument(Document document) throws ResourceInstantiationException, ExecutionException {
       corpus.add(document);
       application.execute();
-      Factory.deleteResource(document);
       corpus.clear();
       return document;
    }
@@ -47,8 +53,8 @@ public class GATEApplication {
       String content = FileUtils.readFileToString(new File(args[1]));
 
       GATEApplication gate = new GATEApplication(gateHome);
-      Document document = gate.annotateDocument(content);
-      System.out.println(document);
+      String annotation = gate.xmlAnnotation(content);
+      System.out.println(annotation);
       gate.close();
    }
 }

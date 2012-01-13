@@ -1,6 +1,5 @@
 package wpmcn.hadoop;
 
-import gate.Document;
 import gate.creole.ExecutionException;
 import gate.creole.ResourceInstantiationException;
 import gate.util.GateException;
@@ -43,15 +42,15 @@ public class HadoopGATE extends Configured implements Tool {
 
       @Override
       protected void map(LongWritable offset, Text text, Context context) throws IOException, InterruptedException {
-         Document document;
+         String xml;
          try {
-            document = gate.annotateDocument(text.toString());
+            xml = gate.xmlAnnotation(text.toString());
          } catch (ResourceInstantiationException e) {
             throw new RuntimeException(e);
          } catch (ExecutionException e) {
             throw new RuntimeException(e);
          }
-         annotation.set(document.toXml());
+         annotation.set(xml);
          context.write(offset, annotation);
       }
 
