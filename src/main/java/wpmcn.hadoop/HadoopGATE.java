@@ -1,10 +1,9 @@
 package wpmcn.hadoop;
 
-import gate.*;
+import gate.Document;
 import gate.creole.ExecutionException;
 import gate.creole.ResourceInstantiationException;
 import gate.util.GateException;
-import gate.util.persistence.PersistenceManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.filecache.DistributedCache;
@@ -20,44 +19,35 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 
 public class HadoopGATE extends Configured implements Tool {
    private static final String HDFS_GATE_APP = "/tmp/gate-app.zip";
 
    static public class HadoopGATEMapper extends Mapper<LongWritable, Text, LongWritable, Text> {
-      private final String APPLICATION_XGAPP = "application.xgapp";
-      private Corpus corpus;
-      private CorpusController application;
+      static private GATEApplication gate;
       private Text annotation = new Text();
 
       @Override
       protected void setup(Context context) throws IOException, InterruptedException {
-         // TODO Only initialize GATE once per JVM.
-         Configuration configuration = context.getConfiguration();
-         Path[] localCache = DistributedCache.getLocalCacheArchives(configuration);
-         File gateHome = new File(localCache[0].toString());
-         URL gateApp = new URL("file:" + new Path(gateHome.toString(), APPLICATION_XGAPP).toString());
-         try {
-            Gate.runInSandbox(true);
-            Gate.setGateHome(gateHome);
-            Gate.setPluginsHome(new File(gateHome, "plugins"));
-            Gate.init();
-            application = (CorpusController) PersistenceManager.loadObjectFromUrl(gateApp);
-            corpus = Factory.newCorpus("Hadoop Corpus");
-            application.setCorpus(corpus);
-         } catch (GateException e) {
-            throw new RuntimeException(e);
+         if (null != gate) {
+            Configuration configuration = context.getConfiguration();
+            Path[] localCache = DistributedCache.getLocalCacheArchives(configuration);
+            try {
+               gate = new GATEApplication(localCache[0].toString());
+            } catch (GateException e) {
+               throw new RuntimeException(e);
+            }
          }
       }
 
       @Override
       protected void map(LongWritable offset, Text text, Context context) throws IOException, InterruptedException {
-         Document document = annotateDocument(text.toString());
+         Document document;
          try {
-            application.execute();
+            document = gate.annotateDocument(text.toString());
+         } catch (ResourceInstantiationException e) {
+            throw new RuntimeException(e);
          } catch (ExecutionException e) {
             throw new RuntimeException(e);
          }
@@ -65,27 +55,9 @@ public class HadoopGATE extends Configured implements Tool {
          context.write(offset, annotation);
       }
 
-      @SuppressWarnings({"unchecked"}) // Needed for corpus.add(document)
-      private Document annotateDocument(String contents) {
-         Document document;
-         try {
-            document = Factory.newDocument(contents);
-            corpus.add(document);
-            application.execute();
-         } catch (ResourceInstantiationException e) {
-            throw new RuntimeException(e);
-         } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-         }
-         Factory.deleteResource(document);
-         corpus.clear();
-         return document;
-      }
-
       @Override
       protected void cleanup(Context context) throws IOException, InterruptedException {
-         Factory.deleteResource(corpus);
-         Factory.deleteResource(application);
+         gate.close();
       }
    }
 
@@ -93,9 +65,10 @@ public class HadoopGATE extends Configured implements Tool {
       Path gateApp = new Path(args[0]);
       Path input = new Path(args[1]);
       Path output = new Path(args[2]);
-      // Put the GATE application into the distributed cache with a soft link in the task's working directory.
+      // Put the GATE application into the distributed cache.
       FileSystem fs = FileSystem.get(configuration);
       Path hdfsGateApp = new Path(HDFS_GATE_APP);
+      // TODO Copy to a random temp directory so that there are no name conflicts.
       fs.copyFromLocalFile(gateApp, hdfsGateApp);
       DistributedCache.addCacheArchive(hdfsGateApp.toUri(), configuration);
 
