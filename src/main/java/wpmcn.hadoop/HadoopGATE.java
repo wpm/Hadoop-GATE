@@ -22,13 +22,13 @@ import org.apache.hadoop.util.ToolRunner;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 
 public class HadoopGATE extends Configured implements Tool {
    private static final String HDFS_GATE_APP = "/tmp/gate-app.zip";
 
    static public class HadoopGATEMapper extends Mapper<LongWritable, Text, LongWritable, Text> {
       private final String APPLICATION_XGAPP = "application.xgapp";
-      private Path gateApp;
       private Corpus corpus;
       private CorpusController application;
       private Text annotation = new Text();
@@ -39,13 +39,13 @@ public class HadoopGATE extends Configured implements Tool {
          Configuration configuration = context.getConfiguration();
          Path[] localCache = DistributedCache.getLocalCacheArchives(configuration);
          File gateHome = new File(localCache[0].toString());
-         gateApp = new Path(localCache[0], APPLICATION_XGAPP);
+         URL gateApp = new URL("file:" + new Path(gateHome.toString(), APPLICATION_XGAPP).toString());
          try {
             Gate.runInSandbox(true);
             Gate.setGateHome(gateHome);
             Gate.setPluginsHome(new File(gateHome, "plugins"));
             Gate.init();
-            application = (CorpusController) PersistenceManager.loadObjectFromFile(gateHome);
+            application = (CorpusController) PersistenceManager.loadObjectFromUrl(gateApp);
             corpus = Factory.newCorpus("Hadoop Corpus");
             application.setCorpus(corpus);
          } catch (GateException e) {
@@ -55,10 +55,12 @@ public class HadoopGATE extends Configured implements Tool {
 
       @Override
       protected void map(LongWritable offset, Text text, Context context) throws IOException, InterruptedException {
-         context.setStatus(gateApp.toString());
-         System.out.println(gateApp + ": <" + offset + " " + text + ">");
-
          Document document = annotateDocument(text.toString());
+         try {
+            application.execute();
+         } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+         }
          annotation.set(document.toXml());
          context.write(offset, annotation);
       }
