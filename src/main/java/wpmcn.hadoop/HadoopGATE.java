@@ -19,6 +19,9 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.UUID;
 
 /**
  * A Hadoop job that runs GATE applications
@@ -27,8 +30,6 @@ import java.io.IOException;
  * its root. This application is copied to HDFS and placed into the distributed cache.
  */
 public class HadoopGATE extends Configured implements Tool {
-   private static final String HDFS_GATE_APP = "/tmp/gate-app.zip";
-
    static public class HadoopGATEMapper extends Mapper<LongWritable, Text, LongWritable, Text> {
       static private GATEApplication gate;
       private Text annotation = new Text();
@@ -66,19 +67,17 @@ public class HadoopGATE extends Configured implements Tool {
       }
    }
 
-   static public Job createJob(Configuration configuration, String[] args) throws IOException {
-      Path gateApp = new Path(args[0]);
-      Path input = new Path(args[1]);
-      Path output = new Path(args[2]);
+   static public Job createJob(Configuration configuration,
+                               Path localGateApp, Path hdfsGateApp,
+                               Collection<Path> inputs, Path output) throws IOException {
       // Put the GATE application into the distributed cache.
       FileSystem fs = FileSystem.get(configuration);
-      Path hdfsGateApp = new Path(HDFS_GATE_APP);
-      // TODO Copy to a random temp directory so that there are no name conflicts.
-      fs.copyFromLocalFile(gateApp, hdfsGateApp);
+      fs.copyFromLocalFile(localGateApp, hdfsGateApp);
       DistributedCache.addCacheArchive(hdfsGateApp.toUri(), configuration);
 
       Job job = new Job(configuration, "GATE " + output);
-      FileInputFormat.addInputPath(job, input);
+      for (Path input : inputs)
+         FileInputFormat.addInputPath(job, input);
       SequenceFileOutputFormat.setOutputPath(job, output);
 
       job.setJarByClass(HadoopGATE.class);
@@ -91,10 +90,14 @@ public class HadoopGATE extends Configured implements Tool {
    }
 
    public int run(String[] args) throws Exception {
-      Job job = createJob(getConf(), args);
+      Path localGateApp = new Path(args[0]);
+      Path input = new Path(args[1]);
+      Path output = new Path(args[2]);
+      Path hdfsGateApp = new Path("/tmp/gate-" + UUID.randomUUID() + "-app.zip");
+      Job job = createJob(getConf(), localGateApp, hdfsGateApp, Arrays.asList(input), output);
       boolean success = job.waitForCompletion(true);
       if (success)
-         FileSystem.get(job.getConfiguration()).deleteOnExit(new Path(HDFS_GATE_APP));
+         FileSystem.get(job.getConfiguration()).deleteOnExit(hdfsGateApp);
       return success ? 0 : -1;
    }
 
