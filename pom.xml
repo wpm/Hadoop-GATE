@@ -19,10 +19,16 @@
                       <goal>shade</goal>
                     </goals>
                     <configuration>
-                      <transformers>
-                        <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer">
-                        </transformer>
-                      </transformers>
+                        <filters>
+                            <!--woodstox includes a "LICENSE" file in its jar root that conflicts with the "license"
+                            directory on case-insensitive file systems-->
+                            <filter>
+                                <artifact>org.codehaus.woodstox:wstx-lgpl</artifact>
+                                <excludes>
+                                    <exclude>LICENSE</exclude>
+                                </excludes>
+                            </filter>
+                        </filters>
                     </configuration>
                   </execution>
                 </executions>
