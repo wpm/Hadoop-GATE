@@ -24,12 +24,14 @@ import java.util.*;
 /**
  * A Hadoop job that runs GATE applications
  *
- * This job runs a GATE application on text. The GATE application is a archive file with an application.xgapp file in
- * its root directory. This application is copied to HDFS and placed into the distributed cache.
- *
+ * This job runs an archived GATE application on text files with one document per line. It produces sequence files
+ * containing an XML representation the document annotation. of The GATE application is a archive file with an
+ * application .xgapp file in its root directory. This application is copied to HDFS and placed into the distributed
+ * cache.
+ * <p>
  * The first positional argument is the GATE application. Subsequent positional arguments are input directories,
  * except for the final positional argument, which is the output directory. A sample command might be
- *
+ * <p>
  * <code>
  *    hadoop jar Hadoop-GATE-1.0.jar ANNIE.zip input output
  * </code>
