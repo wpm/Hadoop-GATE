@@ -1,4 +1,4 @@
-package wpmcn.hadoop;
+package wpmcn.gate.hadoop;
 
 import gate.creole.ExecutionException;
 import gate.creole.ResourceInstantiationException;
@@ -19,7 +19,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * A Hadoop job that runs GATE applications
@@ -33,7 +36,7 @@ import java.util.*;
  * except for the final positional argument, which is the output directory. A sample command might be
  * <p>
  * <code>
- *    hadoop jar Hadoop-GATE-1.0.jar ANNIE.zip input output
+ *    gate.hadoop jar Hadoop-GATE-1.0.jar wpmcn.gate.hadoop.HadoopGATE ANNIE.zip input output
  * </code>
  */
 public class HadoopGATE extends Configured implements Tool {

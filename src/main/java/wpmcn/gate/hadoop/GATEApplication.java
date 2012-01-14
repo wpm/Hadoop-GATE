@@ -1,4 +1,4 @@
-package wpmcn.hadoop;
+package wpmcn.gate.hadoop;
 
 import gate.*;
 import gate.creole.ExecutionException;

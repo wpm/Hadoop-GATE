@@ -11,7 +11,7 @@ cache.
 The first positional argument is the GATE application. Subsequent positional arguments are input directories,
 except for the final positional argument, which is the output directory. A sample command might be
 
-	hadoop jar Hadoop-GATE-1.0.jar ANNIE.zip input output
+	hadoop jar Hadoop-GATE-1.0.jar wpmcn.gate.hadoop.HadoopGATE ANNIE.zip input output
 
 This project uses the new Hadoop API. It is built with Maven and demonstrates how to use Maven to package all the
 GATE dependencies into a single jar file.
