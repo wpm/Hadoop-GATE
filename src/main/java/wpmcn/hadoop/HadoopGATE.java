@@ -82,7 +82,7 @@ public class HadoopGATE extends Configured implements Tool {
     * @param hdfsGateApp HDFS path to which the GATE application will be copied
     * @param inputs HDFS input directories
     * @param output HDFS output directory
-    * @return
+    * @return Hadoop job to run
     * @throws IOException
     */
    static public Job createJob(Configuration configuration,

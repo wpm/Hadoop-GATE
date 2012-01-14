@@ -70,6 +70,14 @@ public class GATEApplication {
       Factory.deleteResource(application);
    }
 
+   /**
+    * Entry point that allows the GATE application to be run outside Hadoop. The first positional argument is an
+    * archived GATE application file, and the second positional argument is a document. The document annotations are
+    * written to standard out.
+    *
+    * @param args positional arguments
+    * @throws Exception
+    */
    static public void main(String[] args) throws Exception {
       String gateHome = args[0];
       String content = FileUtils.readFileToString(new File(args[1]));
