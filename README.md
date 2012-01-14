@@ -3,8 +3,8 @@ Hadoop GATE
 
 This project contains a simple Hadoop job that runs a [GATE](http://gate.ac.uk/ "GATE") application.
 
-This job runs an archived GATE application on text files with one document per line. It produces sequence files
-containing an XML representation the document annotation. of The GATE application is a archive file with an
+This job runs an archived GATE application on text files comprised of one document per line. It produces sequence files
+containing XML representations of the document annotation. The GATE application is a archive file with an
 application .xgapp file in its root directory. This application is copied to HDFS and placed into the distributed
 cache.
 
