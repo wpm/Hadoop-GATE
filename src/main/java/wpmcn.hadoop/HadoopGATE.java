@@ -19,15 +19,20 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * A Hadoop job that runs GATE applications
  *
  * This job runs a GATE application on text. The GATE application is a archive file with an application.xgapp file in
- * its root. This application is copied to HDFS and placed into the distributed cache.
+ * its root directory. This application is copied to HDFS and placed into the distributed cache.
+ *
+ * The first positional argument is the GATE application. Subsequent positional arguments are input directories,
+ * except for the final positional argument, which is the output directory. A sample command might be
+ *
+ * <code>
+ *    hadoop jar Hadoop-GATE-1.0.jar ANNIE.zip input output
+ * </code>
  */
 public class HadoopGATE extends Configured implements Tool {
    static public class HadoopGATEMapper extends Mapper<LongWritable, Text, LongWritable, Text> {
@@ -67,6 +72,17 @@ public class HadoopGATE extends Configured implements Tool {
       }
    }
 
+   /**
+    * Create a job that runs a GATE application.
+    *
+    * @param configuration the job configuration
+    * @param localGateApp path to an archived GATE application in the local file system
+    * @param hdfsGateApp HDFS path to which the GATE application will be copied
+    * @param inputs HDFS input directories
+    * @param output HDFS output directory
+    * @return
+    * @throws IOException
+    */
    static public Job createJob(Configuration configuration,
                                Path localGateApp, Path hdfsGateApp,
                                Collection<Path> inputs, Path output) throws IOException {
@@ -78,7 +94,8 @@ public class HadoopGATE extends Configured implements Tool {
       Job job = new Job(configuration, "GATE " + output);
       for (Path input : inputs)
          FileInputFormat.addInputPath(job, input);
-      SequenceFileOutputFormat.setOutputPath(job, output);
+      if (null != output)
+         SequenceFileOutputFormat.setOutputPath(job, output);
 
       job.setJarByClass(HadoopGATE.class);
       job.setInputFormatClass(TextInputFormat.class);
@@ -90,11 +107,19 @@ public class HadoopGATE extends Configured implements Tool {
    }
 
    public int run(String[] args) throws Exception {
+      // The first positional argument is a path to the archived GATE application.
       Path localGateApp = new Path(args[0]);
-      Path input = new Path(args[1]);
-      Path output = new Path(args[2]);
+      // The subsequent positional arguments are input directories.
+      List<Path> inputs = new ArrayList<Path>();
+      int n = args.length;
+      for (int i = 1 ; i < n - 1;i++)
+         inputs.add(new Path(args[i]));
+      // The last positional argument is the output directory.
+      Path output =  n > 2 ? new Path(args[n-1]):null;
+      // Copy the GATE application to a unique temporary HDFS directory.
       Path hdfsGateApp = new Path("/tmp/gate-" + UUID.randomUUID() + "-app.zip");
-      Job job = createJob(getConf(), localGateApp, hdfsGateApp, Arrays.asList(input), output);
+
+      Job job = createJob(getConf(), localGateApp, hdfsGateApp, inputs, output);
       boolean success = job.waitForCompletion(true);
       if (success)
          FileSystem.get(job.getConfiguration()).deleteOnExit(hdfsGateApp);
