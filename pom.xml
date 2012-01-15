@@ -38,6 +38,13 @@
                               </excludes>
                             </filter>
                         </filters>
+                        <artifactSet>
+                            <excludes>
+                                <exclude>
+                                    org.apache.hadoop:*
+                                </exclude>
+                            </excludes>
+                        </artifactSet>
                     </configuration>
                   </execution>
                 </executions>
