@@ -16,4 +16,4 @@ except for the final positional argument, which is the output directory. A sampl
 This project uses the new Hadoop API. It is built with Maven and demonstrates how to use Maven to package all the
 GATE dependencies into a single jar file.
 
-The [Behemoth](https://github.com/jnioche/behemoth) project also runs GATE on Hadoop.
+The [Behemoth](https://github.com/DigitalPebble/behemoth) project also runs GATE on Hadoop.
